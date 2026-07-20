@@ -1,0 +1,10 @@
+# 忽略 .idea 目录
+.idea/
+
+# 忽略日志文件
+*.log
+
+*.yaml
+
+go.mod
+go.sum
