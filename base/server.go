@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+// Start 启动客户端管理器，注册路由并监听 HTTP 服务。
 func Start() {
 	hub := newHub() /**/
 	go hub.run()
@@ -25,6 +26,7 @@ func Start() {
 	slog.Info(`服务启动成功`)
 }
 
+// hello 返回固定的问候文本，供接口连通性测试使用。
 func hello(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write([]byte("hello world"))
 	if err != nil {
@@ -32,6 +34,7 @@ func hello(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// wjsm 根据请求中的 qqid 参数返回对应的姓名文本。
 func wjsm(w http.ResponseWriter, r *http.Request) {
 	qqid := r.URL.Query().Get("qqid")
 	if qqid == "173930040" {

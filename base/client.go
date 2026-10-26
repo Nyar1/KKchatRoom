@@ -10,16 +10,16 @@ import (
 )
 
 const (
-	// Time allowed to write a message to the peer.
+	// 向客户端写入消息的超时时间。
 	writeWait = 10 * time.Second
 
-	// Time allowed to read the next pong message from the peer.
+	// 等待客户端下一次 Pong 心跳响应的超时时间。
 	pongWait = 60 * time.Second
 
-	// Send pings to peer with this period. Must be less than pongWait.
+	// 向客户端发送 Ping 心跳的间隔，必须小于 pongWait。
 	pingPeriod = (pongWait * 9) / 10
 
-	// Maximum message size allowed from peer.
+	// 允许接收的客户端消息大小上限。
 	maxMessageSize = 512
 )
 
@@ -33,6 +33,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+// Client 表示一个在线客户端，保存连接和待发送消息。
 type Client struct {
 	hub  *Hub
 	conn *websocket.Conn
@@ -42,6 +43,7 @@ type Client struct {
 	kkcrName string
 }
 
+// NewClient 创建客户端并初始化消息发送队列。
 func NewClient(conn *websocket.Conn, hub *Hub) *Client {
 	return &Client{
 		hub:  hub,
@@ -50,6 +52,7 @@ func NewClient(conn *websocket.Conn, hub *Hub) *Client {
 	}
 }
 
+// readPump 持续读取客户端消息，整理后交给 Hub 广播。
 func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
@@ -70,6 +73,7 @@ func (c *Client) readPump() {
 	}
 }
 
+// writePump 向客户端发送队列中的消息，并定期发送心跳。
 func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
@@ -81,7 +85,7 @@ func (c *Client) writePump() {
 		case message, ok := <-c.send:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				// The hub closed the channel.
+				// Hub 已关闭消息发送通道。
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 			}
 			w, err := c.conn.NextWriter(websocket.TextMessage)
@@ -112,6 +116,7 @@ func (c *Client) writePump() {
 	}
 }
 
+// OnWs 将 HTTP 请求升级为 WebSocket，注册客户端并启动消息收发。
 func OnWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {

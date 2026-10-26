@@ -1,21 +1,21 @@
 package base
 
-// Hub maintains the set of active clients and broadcasts messages to the
-// clients.
+// Hub 管理在线客户端，并将消息广播给所有客户端。
 type Hub struct {
-	// Registered clients.
+	// 已注册的客户端。
 	clients map[*Client]bool
 
-	// Inbound messages from the clients.
+	// 接收客户端发来的消息的通道。
 	broadcast chan []byte
 
-	// Register requests from the clients.
+	// 接收客户端注册请求的通道。
 	register chan *Client
 
-	// Unregister requests from clients.
+	// 接收客户端退出请求的通道。
 	unregister chan *Client
 }
 
+// newHub 创建客户端管理器并初始化消息与连接管理通道。
 func newHub() *Hub {
 	return &Hub{
 		broadcast:  make(chan []byte),
@@ -25,6 +25,7 @@ func newHub() *Hub {
 	}
 }
 
+// run 持续处理客户端注册、退出和消息广播。
 func (h *Hub) run() {
 	for {
 		select {

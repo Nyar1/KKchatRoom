@@ -2,9 +2,7 @@ package main
 
 import "KKchatRoom/base"
 
-//TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
-
+// main 是程序入口，负责启动聊天室服务。
 func main() {
 	base.Start()
 }
