@@ -37,6 +37,9 @@ type Client struct {
 	hub  *Hub
 	conn *websocket.Conn
 	send chan []byte
+
+	kkcrId   string
+	kkcrName string
 }
 
 func NewClient(conn *websocket.Conn, hub *Hub) *Client {
