@@ -110,11 +110,11 @@ func (c *Client) writePump() {
 			}
 			sendMessage(messageBody, w)
 
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				sendMessage(<-c.send, w)
-			}
+			//n := len(c.send)
+			//for i := 0; i < n; i++ {
+			//	w.Write(newline)
+			//	sendMessage(<-c.send, w)
+			//}
 			if err = w.Close(); err != nil {
 				if websocket.IsUnexpectedCloseError(
 					err,
