@@ -14,6 +14,13 @@ func Start() {
 	go hub.run()
 	//配置路由
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		http.ServeFile(w, r, "web/index.html")
+	})
 	mux.HandleFunc("/hello", hello)
 	mux.HandleFunc("/wjsm", wjsm)
 	mux.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
