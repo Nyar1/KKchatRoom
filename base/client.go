@@ -1,12 +1,12 @@
 package base
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"io"
 	"log/slog"
+	"net/http"
 	"time"
 )
 
@@ -45,11 +45,15 @@ type Client struct {
 }
 
 // NewClient 创建客户端并初始化消息发送队列。
-func NewClient(conn *websocket.Conn, hub *Hub) *Client {
+func NewClient(conn *websocket.Conn, hub *Hub, r *http.Request) *Client {
+	cId := `1937`
+	cName := `KK`
 	return &Client{
-		hub:  hub,
-		conn: conn,
-		send: make(chan Message, 256),
+		hub:      hub,
+		conn:     conn,
+		send:     make(chan Message, 256),
+		kkcrId:   cId,
+		kkcrName: cName,
 	}
 }
 
@@ -68,6 +72,10 @@ func (c *Client) readPump() {
 			slog.Error(fmt.Sprintf("read err: %v", err))
 			return
 		}
+		if err != nil {
+			slog.Error(fmt.Sprintf("客户端%v接收消息报错", c.kkcrId), "readPump err", err.Error())
+			return
+		}
 		slog.Info(string(messageBody))
 		message := Message{}
 		if err = json.Unmarshal(messageBody, &message); err != nil {
@@ -75,7 +83,7 @@ func (c *Client) readPump() {
 			message.Content = string(messageBody)
 			message.MessageType = MsgTypeTest
 		}
-		message.Content = string(bytes.TrimSpace(bytes.Replace([]byte(message.Content), newline, space, -1)))
+		message.Check(c)
 		c.hub.broadcast <- message
 	}
 }
@@ -94,6 +102,7 @@ func (c *Client) writePump() {
 			if !ok {
 				// Hub 已关闭消息发送通道。
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
 			}
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {

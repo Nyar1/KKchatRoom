@@ -62,6 +62,7 @@ func OnWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		slog.Error(err.Error())
+		return
 	}
 	ip, port, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
@@ -69,7 +70,7 @@ func OnWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	slog.Info("客户端连接", "ip", ip, "port", port)
-	client := NewClient(conn, hub)
+	client := NewClient(conn, hub, r)
 	client.hub.register <- client
 	go client.writePump()
 	go client.readPump()

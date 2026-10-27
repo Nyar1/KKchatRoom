@@ -2,6 +2,8 @@ package base
 
 // Hub 管理在线客户端，并将消息广播给所有客户端。
 type Hub struct {
+	//HUbID
+	HubID string
 	// 已注册的客户端。
 	clients map[*Client]bool
 

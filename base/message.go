@@ -1,6 +1,9 @@
 package base
 
-import "time"
+import (
+	"bytes"
+	"time"
+)
 
 const (
 	MsgTypeText  = "TEXT"
@@ -25,7 +28,7 @@ type Message struct {
 }
 
 func NewMessage() Message {
-	now := time.Now().Unix()
+	now := time.Now().UnixMilli()
 	return Message{
 		MessageID:   "",
 		MessageType: "",
@@ -37,4 +40,13 @@ func NewMessage() Message {
 		Sequence:    0,
 		Hidden:      false,
 	}
+}
+
+func (message *Message) Check(c *Client) {
+	now := time.Now().UnixMilli()
+	message.Content = string(bytes.TrimSpace(bytes.Replace([]byte(message.Content), newline, space, -1)))
+	message.CreatedAt = now
+	message.UpdatedAt = now
+	message.HubID = c.hub.HubID
+	message.SenderID = c.kkcrId
 }
