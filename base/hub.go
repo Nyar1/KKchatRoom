@@ -6,19 +6,27 @@ type Hub struct {
 	clients map[*Client]bool
 
 	// 接收客户端发来的消息的通道。
-	broadcast chan []byte
+	broadcast chan Message
 
 	// 接收客户端注册请求的通道。
 	register chan *Client
 
 	// 接收客户端退出请求的通道。
 	unregister chan *Client
+
+	// 下一个消息序号
+	Sequence uint32 `json:"sequence" gorm:"comment:消息的序号"`
+}
+
+func (h *Hub) NextSequence() uint32 {
+	h.Sequence++
+	return h.Sequence
 }
 
 // newHub 创建客户端管理器并初始化消息与连接管理通道。
 func newHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan []byte),
+		broadcast:  make(chan Message),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
@@ -37,6 +45,7 @@ func (h *Hub) run() {
 				close(client.send)
 			}
 		case message := <-h.broadcast:
+			message.Sequence = h.NextSequence()
 			for client := range h.clients {
 				select {
 				case client.send <- message:

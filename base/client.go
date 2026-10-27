@@ -2,10 +2,11 @@ package base
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"io"
 	"log/slog"
-	"net/http"
 	"time"
 )
 
@@ -37,7 +38,7 @@ var upgrader = websocket.Upgrader{
 type Client struct {
 	hub  *Hub
 	conn *websocket.Conn
-	send chan []byte
+	send chan Message
 
 	kkcrId   string
 	kkcrName string
@@ -48,7 +49,7 @@ func NewClient(conn *websocket.Conn, hub *Hub) *Client {
 	return &Client{
 		hub:  hub,
 		conn: conn,
-		send: make(chan []byte, 256),
+		send: make(chan Message, 256),
 	}
 }
 
@@ -62,13 +63,19 @@ func (c *Client) readPump() {
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, messageBody, err := c.conn.ReadMessage()
 		if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 			slog.Error(fmt.Sprintf("read err: %v", err))
 			return
 		}
-		slog.Info(string(message))
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
+		slog.Info(string(messageBody))
+		message := Message{}
+		if err = json.Unmarshal(messageBody, &message); err != nil {
+			message = NewMessage()
+			message.Content = string(messageBody)
+			message.MessageType = MsgTypeTest
+		}
+		message.Content = string(bytes.TrimSpace(bytes.Replace([]byte(message.Content), newline, space, -1)))
 		c.hub.broadcast <- message
 	}
 }
@@ -82,7 +89,7 @@ func (c *Client) writePump() {
 	}()
 	for {
 		select {
-		case message, ok := <-c.send:
+		case messageBody, ok := <-c.send:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// Hub 已关闭消息发送通道。
@@ -92,12 +99,12 @@ func (c *Client) writePump() {
 			if err != nil {
 				return
 			}
-			w.Write(message)
+			sendMessage(messageBody, w)
 
 			n := len(c.send)
 			for i := 0; i < n; i++ {
 				w.Write(newline)
-				w.Write(<-c.send)
+				sendMessage(<-c.send, w)
 			}
 			if err = w.Close(); err != nil {
 				if websocket.IsUnexpectedCloseError(
@@ -116,14 +123,11 @@ func (c *Client) writePump() {
 	}
 }
 
-// OnWs 将 HTTP 请求升级为 WebSocket，注册客户端并启动消息收发。
-func OnWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+func sendMessage(messageBody Message, w io.WriteCloser) {
+	message, err := json.Marshal(messageBody)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("writePump()", "json.Marshal(messageBody)", err.Error())
+		return
 	}
-	client := NewClient(conn, hub)
-	client.hub.register <- client
-	go client.writePump()
-	go client.readPump()
+	w.Write(message)
 }

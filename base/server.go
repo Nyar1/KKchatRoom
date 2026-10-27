@@ -1,8 +1,10 @@
 package base
 
 import (
+	"KKchatRoom/base/tools"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 )
 
@@ -17,13 +19,23 @@ func Start() {
 	mux.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
 		OnWs(hub, writer, request)
 	})
-	//启动服务
-	err := http.ListenAndServe("192.168.10.6:8080", mux)
+	config, err := tools.LoadConfig("?")
 	if err != nil {
-		slog.Error(fmt.Sprintf("Start::http.ListenAndServ err:%v", err))
+		slog.Error("Start err:", "tools.LoadConfig(", err.Error())
 		return
 	}
-	slog.Info(`服务启动成功`)
+	listener, err := net.Listen("tcp", config.IP)
+	if err != nil {
+		slog.Error("监听失败", "err", err)
+		return
+	}
+	slog.Info("服务监听成功", "addr", listener.Addr().String())
+	//启动服务
+	err = http.Serve(listener, mux)
+	if err != nil {
+		slog.Error("Start err", "http.Serve err", err.Error())
+		return
+	}
 }
 
 // hello 返回固定的问候文本，供接口连通性测试使用。
@@ -43,4 +55,22 @@ func wjsm(w http.ResponseWriter, r *http.Request) {
 			slog.Error(fmt.Sprintf("write hello err:%v", err))
 		}
 	}
+}
+
+// OnWs 将 HTTP 请求升级为 WebSocket，注册客户端并启动消息收发。
+func OnWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		slog.Error(err.Error())
+	}
+	ip, port, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		slog.Error("解析客户端地址失败", "err", err)
+		return
+	}
+	slog.Info("客户端连接", "ip", ip, "port", port)
+	client := NewClient(conn, hub)
+	client.hub.register <- client
+	go client.writePump()
+	go client.readPump()
 }
