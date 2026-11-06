@@ -1,4 +1,4 @@
-package tools
+package configResources
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-const ConfigPath = "base/configResources/serverConfig.yaml"
+const ConfigPath = "configResources/serverConfig.yaml"
 
 // Config 保存应用配置。
 type Config struct {
@@ -16,6 +16,10 @@ type Config struct {
 		Port int    `yaml:"port"`
 	} `yaml:"server"`
 	IP string `yaml:"-"`
+
+	Database struct {
+		Dsn string `yaml:"dsn"`
+	} `yaml:"database"`
 }
 
 // LoadConfig 从指定路径读取并解析配置。
@@ -24,6 +28,9 @@ func LoadConfig(path string) (Config, error) {
 	defer func() {
 		if config.IP == "" {
 			config.IP = "127.0.0.1:8080"
+		}
+		if config.Database.Dsn == "" {
+			config.Database.Dsn = "root:12345@tcp(127.0.0.1:3306)/kkchatroom?charset=utf8mb4&parseTime=true&loc=Local&timeout=5s"
 		}
 	}()
 	path = ConfigPath

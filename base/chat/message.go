@@ -1,4 +1,4 @@
-package base
+package chat
 
 import (
 	"bytes"
@@ -48,5 +48,5 @@ func (message *Message) Check(c *Client) {
 	message.CreatedAt = now
 	message.UpdatedAt = now
 	message.HubID = c.hub.HubID
-	message.SenderID = c.kkcrId
+	message.SenderID = c.KKUId
 }

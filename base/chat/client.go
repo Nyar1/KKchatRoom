@@ -1,4 +1,4 @@
-package base
+package chat
 
 import (
 	"encoding/json"
@@ -40,8 +40,8 @@ type Client struct {
 	conn *websocket.Conn
 	send chan Message
 
-	kkcrId   string
-	kkcrName string
+	KKUId    string //
+	KKcrName string
 }
 
 // NewClient 创建客户端并初始化消息发送队列。
@@ -52,8 +52,8 @@ func NewClient(conn *websocket.Conn, hub *Hub, r *http.Request) *Client {
 		hub:      hub,
 		conn:     conn,
 		send:     make(chan Message, 256),
-		kkcrId:   cId,
-		kkcrName: cName,
+		KKUId:    cId,
+		KKcrName: cName,
 	}
 }
 
@@ -73,7 +73,7 @@ func (c *Client) readPump() {
 			return
 		}
 		if err != nil {
-			slog.Error(fmt.Sprintf("客户端%v接收消息报错", c.kkcrId), "readPump err", err.Error())
+			slog.Error(fmt.Sprintf("客户端%v接收消息报错", c.KKUId), "readPump err", err.Error())
 			return
 		}
 		slog.Info(string(messageBody))

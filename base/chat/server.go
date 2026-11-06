@@ -1,7 +1,7 @@
-package base
+package chat
 
 import (
-	"KKchatRoom/base/tools"
+	"KKchatRoom/configResources"
 	"fmt"
 	"log/slog"
 	"net"
@@ -26,7 +26,7 @@ func Start() {
 	mux.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
 		OnWs(hub, writer, request)
 	})
-	config, err := tools.LoadConfig("?")
+	config, err := configResources.LoadConfig("?")
 	if err != nil {
 		slog.Error("Start err:", "tools.LoadConfig(", err.Error())
 		return
